@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Укажите путь к вашей карте сайта
+Sitemap: https://vercel.app
