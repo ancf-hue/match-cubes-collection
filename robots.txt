@@ -1,5 +1,3 @@
 User-agent: *
 Allow: /
-
-# Укажите путь к вашей карте сайта
-Sitemap: https://vercel.app
+Sitemap: https://match-cubes-collection.vercel.app/sitemap.xml
