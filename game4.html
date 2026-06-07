@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Игра "6 в ряд" - Победа с Музыкой!</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background: #1a0f24;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .top-score {
+            font-size: 36px;
+            font-weight: 900;
+            color: #fff;
+            text-align: center;
+            margin-bottom: 15px;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .top-score img {
+            width: 42px;
+            height: 42px;
+            vertical-align: middle;
+            margin-right: 12px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+            background: rgba(255,255,255,0.1);
+        }
+        .top-score span { color: #FFD700; font-size: 42px; }
+
+        .glass-cubes-container {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            perspective: 800px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .left-cubes { left: 15px; }
+        .right-cubes { right: 15px; }
+
+        .glass-cube {
+            width: 70px;
+            height: 70px;
+            position: relative;
+            transform-style: preserve-3d;
+            margin-bottom: 25px;
+        }
+        .left-cubes .glass-cube:nth-child(1) { animation: spinLeft 12s infinite linear; }
+        .left-cubes .glass-cube:nth-child(2) { animation: spinLeft 15s infinite linear; animation-delay: -3s; }
+        .left-cubes .glass-cube:nth-child(3) { animation: spinLeft 18s infinite linear; animation-delay: -6s; }
+        .left-cubes .glass-cube:nth-child(4) { animation: spinLeft 21s infinite linear; animation-delay: -9s; }
+        .left-cubes .glass-cube:nth-child(5) { animation: spinLeft 24s infinite linear; animation-delay: -12s; }
+        .left-cubes .glass-cube:nth-child(6) { animation: spinLeft 27s infinite linear; animation-delay: -15s; }
+        .right-cubes .glass-cube:nth-child(1) { animation: spinRight 14s infinite linear; }
+        .right-cubes .glass-cube:nth-child(2) { animation: spinRight 17s infinite linear; animation-delay: -4s; }
+        .right-cubes .glass-cube:nth-child(3) { animation: spinRight 20s infinite linear; animation-delay: -8s; }
+        .right-cubes .glass-cube:nth-child(4) { animation: spinRight 23s infinite linear; animation-delay: -11s; }
+        .right-cubes .glass-cube:nth-child(5) { animation: spinRight 26s infinite linear; animation-delay: -14s; }
+        .right-cubes .glass-cube:nth-child(6) { animation: spinRight 29s infinite linear; animation-delay: -17s; }
+
+        .g-face {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            background: rgba(200, 230, 255, 0.15);
+            border: 1.5px solid rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(4px);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2), inset 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+        .g-front  { transform: translateZ(35px); }
+        .g-back   { transform: rotateY(180deg) translateZ(35px); }
+        .g-right  { transform: rotateY(90deg) translateZ(35px); }
+        .g-left   { transform: rotateY(-90deg) translateZ(35px); }
+        .g-top    { transform: rotateX(90deg) translateZ(35px); }
+        .g-bottom { transform: rotateX(-90deg) translateZ(35px); }
+
+        @keyframes spinLeft { 100% { transform: rotateX(360deg) rotateY(-360deg); } }
+        @keyframes spinRight { 100% { transform: rotateX(-360deg) rotateY(360deg); } }
+
+        .game {
+            background: #f5e7d3;
+            padding: 25px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            z-index: 20;
+        }
+        canvas {
+            background: #ffe0b5;
+            border-radius: 12px;
+            cursor: pointer;
+            display: block;
+            margin: 0 auto;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+            max-width: 100%;
+            height: auto;
+        }
+        .status {
+            margin-top: 15px;
+            font-size: 20px;
+            color: #333;
+            font-weight: bold;
+            min-height: 30px;
+            transition: all 0.3s;
+        }
+        .status.excellent {
+            color: #2e7d32;
+            font-size: 24px;
+            text-shadow: 0 0 5px rgba(46, 125, 50, 0.3);
+            animation: pop 0.3s ease;
+        }
+        @keyframes pop { 50% { transform: scale(1.15); } }
+        .btn-restart {
+            margin-top: 15px;
+            padding: 12px 28px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background: #6DA55A;
+            color: white;
+            font-weight: bold;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-restart:hover { background: #5a8f4a; transform: translateY(-2px); }
+
+        .victory-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+        .victory-overlay.active { display: flex; }
+        .trophy {
+            font-size: 120px;
+            animation: trophyBounce 1s infinite alternate;
+            filter: drop-shadow(0 0 30px gold);
+        }
+        @keyframes trophyBounce {
+            0% { transform: scale(1) rotate(-5deg); }
+            100% { transform: scale(1.1) rotate(5deg); }
+        }
+        .victory-text { color: #FFD700; font-size: 48px; font-weight: 900; margin-top: 20px; text-shadow: 0 0 20px rgba(255, 215, 0, 0.8); text-align: center; }
+        .victory-subtext { color: #fff; font-size: 24px; margin-top: 10px; }
+
+        .confetti {
+            position: absolute;
+            width: 10px; height: 10px;
+            top: -20px;
+            animation: fall linear forwards;
+        }
+        @keyframes fall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+        .firework {
+            position: absolute;
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            animation: explode 1.5s ease-out forwards;
+        }
+        @keyframes explode {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+
+        .support-footer {
+            margin-top: 40px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 15px;
+            max-width: 600px;
+            text-align: center;
+            color: #fff;
+            font-size: 15px;
+            line-height: 1.6;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 20;
+        }
+        .support-footer h3 { margin: 0 0 15px 0; font-size: 20px; color: #6DA55A; }
+        .phone-number {
+            font-size: 20px; font-weight: bold; color: #578FCA;
+            background: rgba(87, 143, 202, 0.15); padding: 12px;
+            border-radius: 8px; display: inline-block; margin: 10px 0;
+            cursor: pointer; transition: all 0.3s;
+            border: 1px solid rgba(87, 143, 202, 0.3);
+        }
+        .phone-number:hover { background: rgba(87, 143, 202, 0.25); transform: scale(1.02); }
+        .copy-btn {
+            background: #578FCA; color: white; border: none;
+            padding: 10px 20px; border-radius: 6px; cursor: pointer;
+            font-size: 15px; margin: 5px; transition: all 0.3s; font-weight: bold;
+        }
+        .copy-btn:hover { background: #4578a8; transform: translateY(-2px); }
+        .support-link {
+            display: inline-block; margin-top: 20px; padding: 12px 24px;
+            background: linear-gradient(135deg, #6DA55A, #578FCA);
+            color: white; text-decoration: none; border-radius: 25px;
+            font-weight: bold; transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(109, 165, 90, 0.4);
+        }
+        .support-link:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(109, 165, 90, 0.6); }
+        .copied { background: #6DA55A !important; }
+
+        @media (max-width: 700px) {
+            .glass-cubes-container { display: none; }
+            .top-score { font-size: 28px; }
+            .top-score img { width: 32px; height: 32px; }
+            .top-score span { font-size: 34px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-score">
+        <img src="favicon.ico" alt="Логотип">
+        БАЛЛЫ: <span id="score">0</span> / 102
+    </div>
+
+    <div class="glass-cubes-container left-cubes">
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+    </div>
+
+    <div class="game">
+        <canvas id="canvas" width="600" height="600"></canvas>
+        <div class="status" id="status">СОБЕРИ - 6 одинаковых кубиков</div>
+        <button class="btn-restart" onclick="location.reload()">🔄 Новая игра</button>
+        <a href="index.html" class="btn-restart">🔙 В МЕНЮ</a>
+    </div>
+
+    <div class="glass-cubes-container right-cubes">
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+    </div>
+
+    <div class="victory-overlay" id="victoryScreen">
+        <div class="trophy">🏆</div>
+        <div class="victory-text">ПОБЕДА!</div>
+        <div class="victory-subtext">Вы набрали 102 балла!</div>
+        <button class="btn-restart" style="margin-top: 30px; font-size: 20px;" onclick="location.reload()">🔄 Играть снова</button>
+        <a href="index.html" class="btn-restart" style="margin-top: 15px; font-size: 20px;">🔙 В МЕНЮ</a>
+    </div>
+
+    <div class="support-footer">
+        <h3>🤝 ПОДДЕРЖАТЬ ПРОЕКТ 💙</h3>
+        <p>Приложение бесплатное. Было и останется.</p>
+        <p>Если проект помог вам — можете поддержать разработку добровольным переводом.</p>
+        <p>📱 <strong>ПЕРЕВОД ПО НОМЕРУ ТЕЛЕФОНА:</strong></p>
+        <div class="phone-number" id="phone">8-920-227-56-76</div>
+        <br>
+        <button class="copy-btn" onclick="copyPhone()">📋 Копировать номер</button>
+        <p>✅ Деньги придут мгновенно. Без комиссии. Безопасно.</p>
+        <p>❤️ Спасибо за поддержку! 🌟</p>
+        <a href="https://ancf-hue.github.io/" target="_blank" class="support-link">👉 Каталог бесплатных офлайн-приложений Anti-AI Shield</a>
+    </div>
+
+<script>
+    function copyPhone() {
+        navigator.clipboard.writeText('89202275676').then(() => {
+            const btn = document.querySelector('.copy-btn');
+            const originalText = btn.innerText;
+            btn.innerText = '✅ Скопировано!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.classList.remove('copied');
+            }, 2000);
+        });
+    }
+
+    // ======================= ОЗВУЧКА (полная версия) =======================
+    let audioCtx = null;
+    let isVictoryMusicPlaying = false;
+    let victoryMusicTimeout = null;
+
+    function initAudio() {
+        if (audioCtx) return audioCtx;
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            return audioCtx;
+        } catch(e) { return null; }
+    }
+
+    function actuallyPlayTone(frequency, duration, type, volume) {
+        if (!audioCtx) return;
+        try {
+            const now = audioCtx.currentTime;
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.type = type;
+            oscillator.frequency.value = frequency;
+            gainNode.gain.setValueAtTime(volume, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+            oscillator.start();
+            oscillator.stop(now + duration);
+        } catch(e) {}
+    }
+
+    function playTone(frequency, duration, type = 'sine', volume = 0.3) {
+        if (!audioCtx) initAudio();
+        if (!audioCtx) return;
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume().then(() => actuallyPlayTone(frequency, duration, type, volume));
+            return;
+        }
+        if (audioCtx.state !== 'running') return;
+        actuallyPlayTone(frequency, duration, type, volume);
+    }
+
+    function playMatchSound() {
+        playTone(880, 0.12, 'sine', 0.25);
+        setTimeout(() => playTone(1046.5, 0.2, 'sine', 0.2), 80);
+    }
+
+    function playErrorSound() {
+        playTone(220, 0.2, 'sawtooth', 0.2);
+    }
+
+    function playSelectSound() {
+        playTone(660, 0.06, 'sine', 0.12);
+    }
+
+    // ПОБЕДНАЯ МУЗЫКА РОВНО 2 СЕКУНДЫ
+    function playVictoryMusicExactly2Seconds() {
+        if (isVictoryMusicPlaying) return;
+        if (!audioCtx) initAudio();
+        if (!audioCtx) return;
+
+        const startMelody = () => {
+            if (isVictoryMusicPlaying) return;
+            isVictoryMusicPlaying = true;
+
+            const now = audioCtx.currentTime;
+            const melody = [
+                { freq: 523.25, dur: 0.22, vol: 0.4, type: 'triangle' },
+                { freq: 587.33, dur: 0.22, vol: 0.4, type: 'triangle' },
+                { freq: 659.25, dur: 0.22, vol: 0.4, type: 'triangle' },
+                { freq: 783.99, dur: 0.22, vol: 0.45, type: 'triangle' },
+                { freq: 880.00, dur: 0.22, vol: 0.45, type: 'triangle' },
+                { freq: 1046.50, dur: 0.3, vol: 0.5, type: 'sine' },
+                { freq: 1318.52, dur: 0.35, vol: 0.5, type: 'sine' },
+                { freq: 1567.98, dur: 0.45, vol: 0.55, type: 'sine' }
+            ];
+            let time = now;
+            melody.forEach(note => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = note.type;
+                osc.frequency.value = note.freq;
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(note.vol, time + 0.03);
+                gain.gain.exponentialRampToValueAtTime(0.0001, time + note.dur);
+                osc.start(time);
+                osc.stop(time + note.dur);
+                time += note.dur + 0.02;
+            });
+            const finalTime = now + 1.85;
+            const bell = audioCtx.createOscillator();
+            const bellGain = audioCtx.createGain();
+            bell.connect(bellGain);
+            bellGain.connect(audioCtx.destination);
+            bell.type = 'sine';
+            bell.frequency.value = 2093.0;
+            bellGain.gain.setValueAtTime(0, finalTime);
+            bellGain.gain.linearRampToValueAtTime(0.35, finalTime + 0.05);
+            bellGain.gain.exponentialRampToValueAtTime(0.0001, finalTime + 0.45);
+            bell.start(finalTime);
+            bell.stop(finalTime + 0.45);
+
+            if (victoryMusicTimeout) clearTimeout(victoryMusicTimeout);
+            victoryMusicTimeout = setTimeout(() => { isVictoryMusicPlaying = false; victoryMusicTimeout = null; }, 2000);
+        };
+
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume().then(() => startMelody());
+        } else if (audioCtx.state === 'running') {
+            startMelody();
+        } else {
+            startMelody();
+        }
+    }
+
+    function enableAudioOnFirstInteraction() {
+        const resumeAudio = () => {
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume().then(() => playTone(440, 0.08, 'sine', 0.08));
+            }
+            window.removeEventListener('click', resumeAudio);
+            window.removeEventListener('touchstart', resumeAudio);
+        };
+        window.addEventListener('click', resumeAudio);
+        window.addEventListener('touchstart', resumeAudio);
+    }
+
+    // ======================= ИГРОВАЯ ЛОГИКА (6 в ряд, 10x10, 102 очка) =======================
+    const SIZE = 10;
+    const CELL_SIZE = 60;
+    const COLORS = ['#E55C3C', '#F3B33D', '#6DA55A', '#578FCA', '#CD7FCE', '#F5A3C7'];
+    
+    let canvas, ctx, scoreDisplay, statusDisplay;
+    let board = [], score = 0;
+    let selectedRow = null, selectedCol = null;
+    let waiting = false;
+    let blinkingCells = [];
+    let gameWon = false;
+
+    function createBoard() {
+        let newBoard = [];
+        for (let i = 0; i < SIZE; i++) {
+            newBoard[i] = [];
+            for (let j = 0; j < SIZE; j++) {
+                newBoard[i][j] = Math.floor(Math.random() * COLORS.length);
+            }
+        }
+        return newBoard;
+    }
+
+    function findAllMatches(board) {
+        let matches = [];
+        for (let row = 0; row < SIZE; row++) {
+            let length = 1;
+            for (let col = 1; col < SIZE; col++) {
+                if (board[row][col] === board[row][col-1]) length++;
+                else {
+                    if (length >= 6) for (let i = col-length; i < col; i++) matches.push([row, i]);
+                    length = 1;
+                }
+            }
+            if (length >= 6) for (let i = SIZE-length; i < SIZE; i++) matches.push([row, i]);
+        }
+        for (let col = 0; col < SIZE; col++) {
+            let length = 1;
+            for (let row = 1; row < SIZE; row++) {
+                if (board[row][col] === board[row-1][col]) length++;
+                else {
+                    if (length >= 6) for (let i = row-length; i < row; i++) matches.push([i, col]);
+                    length = 1;
+                }
+            }
+            if (length >= 6) for (let i = SIZE-length; i < SIZE; i++) matches.push([i, col]);
+        }
+        return matches;
+    }
+
+    async function animateBlink(matches) {
+        blinkingCells = matches;
+        for (let i = 0; i < 4; i++) {
+            drawBoard();
+            await delay(120);
+        }
+        blinkingCells = [];
+    }
+
+    function removeMatches(board) {
+        let matches = findAllMatches(board);
+        if (matches.length === 0) return false;
+
+        let points = 6;
+        score += points;
+        scoreDisplay.innerText = score;
+        
+        playMatchSound();
+
+        statusDisplay.innerText = `ОТЛИЧНО! +${points} баллов`;
+        statusDisplay.classList.add('excellent');
+        setTimeout(() => {
+            if (!gameWon) {
+                statusDisplay.innerText = 'СОБЕРИ - 6 одинаковых кубиков';
+                statusDisplay.classList.remove('excellent');
+            }
+        }, 1500);
+
+        for (let i = 0; i < matches.length; i++) {
+            board[matches[i][0]][matches[i][1]] = -1;
+        }
+        return true;
+    }
+
+    function applyGravity(board) {
+        for (let col = 0; col < SIZE; col++) {
+            let column = [];
+            for (let row = SIZE-1; row >= 0; row--) {
+                if (board[row][col] !== -1) column.push(board[row][col]);
+            }
+            while (column.length < SIZE) column.push(Math.floor(Math.random() * COLORS.length));
+            column.reverse();
+            for (let row = 0; row < SIZE; row++) board[row][col] = column[row];
+        }
+    }
+
+    async function cascade(board) {
+        while (true) {
+            let matches = findAllMatches(board);
+            if (matches.length === 0) break;
+            await animateBlink(matches);
+            removeMatches(board);
+            applyGravity(board);
+            drawBoard();
+            await delay(200);
+        }
+        checkWin();
+    }
+
+    function checkWin() {
+        if (score >= 102 && !gameWon) {
+            gameWon = true;
+            waiting = true;
+            statusDisplay.innerText = 'ПОБЕДА!';
+            playVictoryMusicExactly2Seconds();
+            setTimeout(showVictory, 300);
+        }
+    }
+
+    function showVictory() {
+        document.getElementById('victoryScreen').classList.add('active');
+        startConfetti();
+        startFireworks();
+    }
+
+    function startConfetti() {
+        const confColors = ['#f00', '#0f0', '#00f', '#ff0', '#0ff', '#f0f', '#FFD700', '#FF69B4'];
+        for (let i = 0; i < 150; i++) {
+            const conf = document.createElement('div');
+            conf.className = 'confetti';
+            conf.style.left = Math.random() * 100 + 'vw';
+            conf.style.top = '-20px';
+            conf.style.background = confColors[Math.floor(Math.random() * confColors.length)];
+            conf.style.animationDuration = (Math.random() * 3 + 2) + 's';
+            conf.style.animationDelay = Math.random() * 3 + 's';
+            document.getElementById('victoryScreen').appendChild(conf);
+        }
+    }
+
+    function startFireworks() {
+        let interval = setInterval(() => {
+            if (!gameWon) { clearInterval(interval); return; }
+            const x = Math.random() * window.innerWidth;
+            const y = Math.random() * (window.innerHeight / 2);
+            const fireColors = ['#FFD700', '#FF4500', '#00FF00', '#00BFFF', '#FF1493'];
+            const color = fireColors[Math.floor(Math.random() * fireColors.length)];
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'firework';
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                particle.style.background = color;
+                const angle = (Math.PI * 2 * i) / 30;
+                const velocity = 50 + Math.random() * 100;
+                particle.style.setProperty('--tx', Math.cos(angle) * velocity + 'px');
+                particle.style.setProperty('--ty', Math.sin(angle) * velocity + 'px');
+                document.getElementById('victoryScreen').appendChild(particle);
+                setTimeout(() => particle.remove(), 1500);
+            }
+        }, 600);
+    }
+
+    function drawBoard() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < SIZE; i++) {
+            for (let j = 0; j < SIZE; j++) {
+                let x = j * CELL_SIZE + 2;
+                let y = i * CELL_SIZE + 2;
+                let size = CELL_SIZE - 4;
+                let isBlinking = blinkingCells.some(cell => cell[0] === i && cell[1] === j);
+
+                if (board[i][j] !== -1) {
+                    let color = COLORS[board[i][j]];
+                    if (isBlinking) {
+                        let blinkPhase = Math.floor(Date.now() / 100) % 2;
+                        ctx.fillStyle = blinkPhase === 0 ? '#FFFFFF' : color;
+                        ctx.shadowColor = '#FFFF00';
+                        ctx.shadowBlur = 20;
+                    } else {
+                        ctx.fillStyle = color;
+                        ctx.shadowBlur = 0;
+                    }
+                    ctx.beginPath();
+                    ctx.rect(x, y, size, size);
+                    ctx.fill();
+                    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+                    ctx.beginPath();
+                    ctx.rect(x + 4, y + 4, size - 8, 8);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                } else {
+                    ctx.fillStyle = '#ffe0b5';
+                    ctx.fillRect(j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                }
+
+                if (selectedRow === i && selectedCol === j) {
+                    ctx.strokeStyle = '#FFD700';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.rect(x - 2, y - 2, size + 4, size + 4);
+                    ctx.stroke();
+                }
+                ctx.strokeStyle = '#d4b88c';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+            }
+        }
+    }
+
+    function swapCells(r1, c1, r2, c2) {
+        let temp = board[r1][c1];
+        board[r1][c1] = board[r2][c2];
+        board[r2][c2] = temp;
+    }
+
+    async function tryMove(row1, col1, row2, col2) {
+        if (waiting) return false;
+        waiting = true;
+        swapCells(row1, col1, row2, col2);
+        drawBoard();
+        await delay(50);
+
+        if (findAllMatches(board).length === 0) {
+            swapCells(row1, col1, row2, col2);
+            drawBoard();
+            statusDisplay.innerText = '❌ Нет комбинации! Попробуй снова.';
+            playErrorSound();
+            waiting = false;
+            return false;
+        }
+
+        await cascade(board);
+        drawBoard();
+        waiting = false;
+        return true;
+    }
+
+    function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+    function setupCanvasClick() {
+        canvas.addEventListener('click', async (e) => {
+            if (waiting) return;
+            let rect = canvas.getBoundingClientRect();
+            let col = Math.floor(((e.clientX - rect.left) * (canvas.width / rect.width)) / CELL_SIZE);
+            let row = Math.floor(((e.clientY - rect.top) * (canvas.height / rect.height)) / CELL_SIZE);
+            
+            if (row < 0 || row >= SIZE || col < 0 || col >= SIZE) return;
+
+            if (selectedRow === null) {
+                selectedRow = row; selectedCol = col;
+                drawBoard();
+                playSelectSound();
+                statusDisplay.innerText = `Выбран кубик (${row+1},${col+1}). Выбери соседний.`;
+                return;
+            }
+
+            let r1 = selectedRow, c1 = selectedCol, r2 = row, c2 = col;
+            selectedRow = null; selectedCol = null;
+
+            if ((Math.abs(r1 - r2) + Math.abs(c1 - c2)) !== 1) {
+                selectedRow = r2; selectedCol = c2;
+                drawBoard();
+                playSelectSound();
+                statusDisplay.innerText = `Выбран новый кубик (${r2+1},${c2+1})`;
+                return;
+            }
+
+            await tryMove(r1, c1, r2, c2);
+            drawBoard();
+        });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        canvas = document.getElementById('canvas');
+        ctx = canvas.getContext('2d');
+        scoreDisplay = document.getElementById('score');
+        statusDisplay = document.getElementById('status');
+        
+        board = createBoard();
+        score = 0;
+        scoreDisplay.innerText = score;
+        
+        drawBoard();
+        setupCanvasClick();
+        
+        initAudio();
+        enableAudioOnFirstInteraction();
+        
+        (async function initialClean() {
+            waiting = true;
+            await cascade(board);
+            waiting = false;
+            drawBoard();
+        })();
+    });
+</script>
+</body>
+</html>

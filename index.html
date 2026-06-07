@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Match-3 Collection - Выбери сложность</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background: #1a0f24;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0; padding: 20px; color: #fff;
+        }
+        .glass-cubes-container {
+            position: fixed; top: 50%; transform: translateY(-50%);
+            perspective: 800px; z-index: 10; pointer-events: none;
+        }
+        .left-cubes { left: 15px; }
+        .right-cubes { right: 15px; }
+        .glass-cube {
+            width: 70px; height: 70px; position: relative;
+            transform-style: preserve-3d; margin-bottom: 25px;
+        }
+        .left-cubes .glass-cube:nth-child(1) { animation: spinLeft 12s infinite linear; }
+        .left-cubes .glass-cube:nth-child(2) { animation: spinLeft 15s infinite linear; animation-delay: -3s; }
+        .left-cubes .glass-cube:nth-child(3) { animation: spinLeft 18s infinite linear; animation-delay: -6s; }
+        .left-cubes .glass-cube:nth-child(4) { animation: spinLeft 21s infinite linear; animation-delay: -9s; }
+        .left-cubes .glass-cube:nth-child(5) { animation: spinLeft 24s infinite linear; animation-delay: -12s; }
+        .left-cubes .glass-cube:nth-child(6) { animation: spinLeft 27s infinite linear; animation-delay: -15s; }
+        .right-cubes .glass-cube:nth-child(1) { animation: spinRight 14s infinite linear; }
+        .right-cubes .glass-cube:nth-child(2) { animation: spinRight 17s infinite linear; animation-delay: -4s; }
+        .right-cubes .glass-cube:nth-child(3) { animation: spinRight 20s infinite linear; animation-delay: -8s; }
+        .right-cubes .glass-cube:nth-child(4) { animation: spinRight 23s infinite linear; animation-delay: -11s; }
+        .right-cubes .glass-cube:nth-child(5) { animation: spinRight 26s infinite linear; animation-delay: -14s; }
+        .right-cubes .glass-cube:nth-child(6) { animation: spinRight 29s infinite linear; animation-delay: -17s; }
+        .g-face {
+            position: absolute; width: 70px; height: 70px;
+            background: rgba(200, 230, 255, 0.15);
+            border: 1.5px solid rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(4px);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2), inset 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+        .g-front  { transform: translateZ(35px); }
+        .g-back   { transform: rotateY(180deg) translateZ(35px); }
+        .g-right  { transform: rotateY(90deg) translateZ(35px); }
+        .g-left   { transform: rotateY(-90deg) translateZ(35px); }
+        .g-top    { transform: rotateX(90deg) translateZ(35px); }
+        .g-bottom { transform: rotateX(-90deg) translateZ(35px); }
+        @keyframes spinLeft { 0% { transform: rotateX(0deg) rotateY(0deg); } 100% { transform: rotateX(360deg) rotateY(-360deg); } }
+        @keyframes spinRight { 0% { transform: rotateX(0deg) rotateY(0deg); } 100% { transform: rotateX(-360deg) rotateY(360deg); } }
+        
+        .menu-board { width: 100%; max-width: 900px; text-align: center; z-index: 20; }
+        .menu-header {
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 30px;
+        }
+        .menu-header img {
+            width: 48px; height: 48px; border-radius: 8px;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+            margin-right: 15px; background: rgba(255,255,255,0.1);
+        }
+        .menu-header h1 {
+            font-size: 32px; font-weight: 900; letter-spacing: 2px;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.8); margin: 0;
+        }
+        .cards-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px; padding: 10px;
+        }
+        .game-card {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 16px; padding: 20px;
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+        }
+        .game-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255,255,255,0.15);
+            box-shadow: 0 8px 25px rgba(109, 165, 90, 0.3);
+            border-color: #6DA55A;
+        }
+        .game-card h3 { margin: 0 0 10px 0; font-size: 22px; color: #FFD700; }
+        .game-card p { margin: 0 0 15px 0; color: #ccc; font-size: 15px; line-height: 1.6; }
+        .play-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #6DA55A, #578FCA);
+            color: white; text-decoration: none;
+            padding: 12px 24px; border-radius: 25px;
+            font-weight: bold; transition: transform 0.2s; width: 100%;
+        }
+        .play-btn:hover { transform: scale(1.05); }
+        
+        .support-footer {
+            margin-top: 40px; background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(10px); padding: 25px; border-radius: 15px;
+            max-width: 600px; text-align: center; font-size: 15px;
+            line-height: 1.6; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1); z-index: 20;
+        }
+        .support-footer h3 { margin: 0 0 15px 0; font-size: 20px; color: #6DA55A; }
+        .phone-number {
+            font-size: 20px; font-weight: bold; color: #578FCA;
+            background: rgba(87,143,202,0.15); padding: 12px;
+            border-radius: 8px; display: inline-block; margin: 10px 0;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .phone-number:hover { background: rgba(87,143,202,0.25); transform: scale(1.02); }
+        .copy-btn {
+            background: #578FCA; color: white; border: none;
+            padding: 10px 20px; border-radius: 6px;
+            cursor: pointer; font-size: 15px; margin: 5px;
+            transition: all 0.3s;
+        }
+        .copy-btn:hover { background: #4578a8; transform: translateY(-2px); }
+        .support-link {
+            display: inline-block; margin-top: 20px; padding: 12px 24px;
+            background: linear-gradient(135deg, #6DA55A, #578FCA);
+            color: white; text-decoration: none;
+            border-radius: 25px; font-weight: bold;
+            transition: all 0.3s;
+        }
+        .support-link:hover { transform: translateY(-3px); }
+        .copied { background: #6DA55A !important; }
+        
+        @media (max-width: 750px) {
+            .glass-cubes-container { display: none; }
+            .menu-header h1 { font-size: 24px; }
+            .cards-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="glass-cubes-container left-cubes">
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+    </div>
+    <div class="glass-cubes-container right-cubes">
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+        <div class="glass-cube"><div class="g-face g-front"></div><div class="g-face g-back"></div><div class="g-face g-right"></div><div class="g-face g-left"></div><div class="g-face g-top"></div><div class="g-face g-bottom"></div></div>
+    </div>
+
+    <div class="menu-board">
+        <div class="menu-header">
+            <img src="favicon.ico" alt="Logo">
+            <h1>ВЫБЕРИ СЛОЖНОСТЬ</h1>
+        </div>
+        <div class="cards-grid">
+            <div class="game-card">
+                <h3>🟢 Уровень 1</h3>
+                <p>Поле 6×6 (36 кубиков)<br>СОБЕРИ - 3 одинаковых кубика<br>Цель: 99 баллов</p>
+                <a href="game1.html" class="play-btn">ИГРАТЬ</a>
+            </div>
+            <div class="game-card">
+                <h3>🔵 Уровень 2</h3>
+                <p>Поле 7×7 (49 кубиков)<br>СОБЕРИ - 4 одинаковых кубика<br>Цель: 100 баллов</p>
+                <a href="game2.html" class="play-btn">ИГРАТЬ</a>
+            </div>
+            <div class="game-card">
+                <h3>🟠 Уровень 3</h3>
+                <p>Поле 9×9 (81 кубик)<br>СОБЕРИ - 5 одинаковых кубиков<br>Цель: 100 баллов</p>
+                <a href="game3.html" class="play-btn">ИГРАТЬ</a>
+            </div>
+            <div class="game-card">
+                <h3>🔴 Уровень 4</h3>
+                <p>Поле 10×10 (100 кубиков)<br>СОБЕРИ - 6 одинаковых кубиков<br>Цель: 102 балла</p>
+                <a href="game4.html" class="play-btn">ИГРАТЬ</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="support-footer">
+        <h3>🤝 ПОДДЕРЖАТЬ ПРОЕКТ 💙</h3>
+        <p>Приложение бесплатное. Было и останется.</p>
+        <p>📱 <strong>ПЕРЕВОД ПО НОМЕРУ ТЕЛЕФОНА:</strong></p>
+        <div class="phone-number" id="phone">8-920-227-56-76</div>
+        <br>
+        <button class="copy-btn" onclick="copyPhone()">📋 Копировать номер</button>
+        <p>✅ Деньги придут мгновенно. Без комиссии. Безопасно.</p>
+        <p>❤️ Спасибо за поддержку! 🌟</p>
+        <a href="https://ancf-hue.github.io/" target="_blank" class="support-link">👉 Каталог бесплатных офлайн-приложений Anti-AI Shield</a>
+    </div>
+
+<script>
+function copyPhone() {
+    navigator.clipboard.writeText('89202275676').then(() => {
+        const btn = document.querySelector('.copy-btn');
+        const t = btn.innerText; btn.innerText = '✅ Скопировано!'; btn.classList.add('copied');
+        setTimeout(() => { btn.innerText = t; btn.classList.remove('copied'); }, 2000);
+    });
+}
+</script>
+</body>
+</html>
